@@ -1,0 +1,247 @@
+<html>
+<meta charset="utf-8">
+<head>
+	<title>Relationship</title>
+	<script src="https://d3js.org/d3.v3.min.js"></script>
+	<script type="text/javascript" src="protovis.js"></script>
+	<style>
+
+	.links line {
+	  stroke: #999;
+	  stroke-opacity: 0.6;
+	}
+
+	.nodes circle {
+	  stroke: #fff;
+	  stroke-width: 1.5px;
+	}
+
+	path.link {
+	  fill: none;
+	  stroke: #666;
+	  stroke-width: 1.5px;
+	}
+	 
+	path.link.twofive {
+	  opacity: 0.25;
+	}
+	 
+	path.link.fivezero {
+	  opacity: 0.50;
+	}
+	 
+	path.link.sevenfive {
+	  opacity: 0.75;
+	}
+	 
+	path.link.onezerozero {
+	  opacity: 1.0;
+	}
+	 
+	circle {
+	  fill: #ccc;
+	  stroke: #fff;
+	  stroke-width: 1.5px;
+	}
+	 
+	text {
+	  fill: #000;
+	  font: 10px sans-serif;
+	  pointer-events: none;
+	}
+
+
+	#tfheader{
+		background-color:#c3dfef;
+	}
+	#tfnewsearch{
+		float:right;
+		padding:20px;
+	}
+	.tftextinput{
+		margin: 0;
+		padding: 5px 15px;
+		font-family: Arial, Helvetica, sans-serif;
+		font-size:14px;
+		border:1px solid #0076a3; border-right:0px;
+		border-top-left-radius: 5px 5px;
+		border-bottom-left-radius: 5px 5px;
+	}
+	.tfbutton {
+		margin: 0;
+		padding: 5px 15px;
+		font-family: Arial, Helvetica, sans-serif;
+		font-size:14px;
+		outline: none;
+		cursor: pointer;
+		text-align: center;
+		text-decoration: none;
+		color: #ffffff;
+		border: solid 1px #0076a3; border-right:0px;
+		background: #0095cd;
+		background: -webkit-gradient(linear, left top, left bottom, from(#00adee), to(#0078a5));
+		background: -moz-linear-gradient(top,  #00adee,  #0078a5);
+		border-top-right-radius: 5px 5px;
+		border-bottom-right-radius: 5px 5px;
+	}
+	.tfbutton:hover {
+		text-decoration: none;
+		background: #007ead;
+		background: -webkit-gradient(linear, left top, left bottom, from(#0095cc), to(#00678e));
+		background: -moz-linear-gradient(top,  #0095cc,  #00678e);
+	}
+	/* Fixes submit button height problem in Firefox */
+	.tfbutton::-moz-focus-inner {
+	  border: 0;
+	}
+	.tfclear{
+		clear:both;
+	}
+</style>
+
+</head>
+<body>
+<div id="tfheader">
+		<div id="tfnewsearch" >
+		        <input type="text" id="input" value="" sclass="tftextinput" name="q" size="21" maxlength="120"><input type="submit" value="search" class="tfbutton" onclick="getValue()">
+		</div>
+	
+	</div>
+<script>
+
+var term = "american";
+var data;
+var relationships = [];
+var tempNode=[];
+var tempLinks=[];
+
+function getValue()
+{
+	var temp;
+	term = document.getElementById("input").value;
+	console.log(term);
+
+	calculateRelationships(term);
+
+    var links = generateLinks(term);
+
+	force_directed(links);
+	//terms.push(temp);
+	
+}
+
+document.getElementById("input").value = term;
+
+//function 
+//console.log(terms);
+
+
+/*terms.forEach(function(t) {
+	console.log(t);
+	if (!relationships[t])
+		relationships[t] = [];
+});*/
+
+function sortRelations(obj) {
+    var arr = []; 
+    for(var key in obj)
+    	if (key != 'undefined')
+    		arr.push({ 'term': key, 'freq': obj[key] });
+    
+    return arr.sort(function(a,b){ return b.freq - a.freq });
+}
+
+d3.tsv("wikinews.tsv", function(error, data_) {
+  if (error) throw error;
+	data = data_;
+	rs = new Object();
+
+	calculateRelationships(term);
+
+	var links = generateLinks(term);
+
+	
+});
+
+function calculateRelationships(terms) {
+	data.forEach(function(d) {
+	    //d.date = new Date(d["time"]);
+
+	    var line = d["person"] + "|" + d["location"] + "|" + d["organization"] + "|" + d["miscellaneous"];
+	    var list = line.split("|");
+
+	    // Return if the line does not contain the given term
+	    if (!line.includes(terms)) return;
+	    
+	    for (var i=0; i<list.length;i++){
+	    	var term = list[i];
+	        //terms.forEach(function(t) {
+        	if (!relationships[terms]) relationships[terms] = [];
+
+	    	if (!relationships[terms][term])
+	    		relationships[terms][term] = 1;
+	    	else
+	    		relationships[terms][term]++;
+	    }
+			 
+	});
+}
+
+function generateLinks(term) {
+	var force = sortRelations(relationships[term]).slice(0,50);
+	//console.log(force);
+	
+	var links = [];
+	var data=[];
+	var i=0;
+	force.forEach(function(f){
+		//data.push(f.term);
+		if(data[f.term]==undefined)
+			data[f.term]=0;
+		data[f.term]=i++;
+	});
+	i=0;
+	
+	console.log(data);
+
+	force.forEach(function(f) {
+		tempNode.push({nodeName:f.term, group:0});
+		i++;
+		links.push({ source: term, target: f.term, value: f.freq/1000 });
+		tempLinks.push({source:data[f.term], target:data[term], value: f.freq/50});
+	});
+
+	console.log(tempLinks);
+	console.log(tempNode);
+	return links;
+}
+
+
+
+</script>
+<script type="text/javascript+protovis">
+
+var vis = new pv.Panel()
+    .width(1000)
+    .height(500)
+    .margin(10)
+    .bottom(100);
+
+var layout = vis.add(pv.Layout.Arc)
+    .nodes(tempNode)
+    .links(tempLinks);
+
+layout.link.add(pv.Line);
+
+layout.node.add(pv.Dot)
+    .size(function(d) d.linkDegree + 4)
+    .fillStyle(pv.Colors.category19().by(function(d) d.group))
+    .strokeStyle(function() this.fillStyle().darker());
+
+layout.label.add(pv.Label);
+
+vis.render();
+
+    </script>
+</body>
+</html>
